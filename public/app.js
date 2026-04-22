@@ -4002,10 +4002,6 @@ function renderBlocks(nota) {
   const container = document.getElementById('nota-blocks');
   if (!container) return;
   container.innerHTML = nota.blocks.map((b,i) => renderBlock(b, i, nota.blocks.length)).join('');
-  // Re-attach auto-resize
-  container.querySelectorAll('.nota-block-input:not(.divider-input)').forEach(ta => {
-    autoResize(ta);
-  });
 }
 
 function renderBlock(b, i, total) {
@@ -4021,19 +4017,45 @@ function renderBlock(b, i, total) {
   if (b.type === 'trade-ref') {
     return renderTradeRefBlock(b);
   }
+  if (b.type === 'image') {
+    const hasImg = b.content && b.content.startsWith('data:');
+    return `<div class="nota-block nota-image-block-wrap" data-id="${b.id}" draggable="true"
+      ondragstart="blockDragStart(event,'${b.id}')" ondragend="blockDragEnd(event)"
+      ondragover="blockDragOver(event,'${b.id}')" ondragleave="blockDragLeave(event)" ondrop="blockDrop(event,'${b.id}')">
+      <div class="nota-block-handle">⋮⋮</div>
+      <div class="nota-image-block-content">
+        ${hasImg
+          ? `<img src="${b.content}" class="nota-image" onclick="notaImageExpand(this)" alt="${b.caption||''}">
+             <div class="nota-image-caption" contenteditable="true" data-id="${b.id}" data-field="caption"
+               data-placeholder="Añadir descripción…" spellcheck="false"
+               oninput="notaImageCaptionChange(this)"
+             >${b.caption||''}</div>`
+          : `<label class="nota-image-upload-label">
+               <input type="file" accept="image/*" style="display:none" onchange="notaImageUpload(this,'${b.id}')">
+               <span class="nota-image-upload-icon">🖼</span>
+               <span>Haz clic para añadir imagen</span>
+               <span class="nota-image-upload-sub">PNG, JPG, GIF, WebP…</span>
+             </label>`
+        }
+      </div>
+      <button class="nota-delete-btn" onclick="notaDeleteBlock('${b.id}')">✕</button>
+    </div>`;
+  }
   const bullet = b.type === 'bullet' ? `<div class="nota-block-bullet">•</div>` : '';
-  const ph = {text:'Escribe algo… (@ para mencionar un trade)',h1:'Título 1',h2:'Título 2',h3:'Título 3',quote:'Cita o reflexión…',bullet:'Elemento de lista',code:'// código…'}[b.type]||'';
+  const ph = {text:'Escribe algo… (@ para trade, / para comandos)',h1:'Título 1',h2:'Título 2',h3:'Título 3',quote:'Cita o reflexión…',bullet:'Elemento de lista',code:'// código…'}[b.type]||'';
   return `<div class="nota-block" data-id="${b.id}" draggable="true"
     ondragstart="blockDragStart(event,'${b.id}')" ondragend="blockDragEnd(event)"
     ondragover="blockDragOver(event,'${b.id}')" ondragleave="blockDragLeave(event)" ondrop="blockDrop(event,'${b.id}')">
     <div class="nota-block-handle">⋮⋮</div>
     <div class="nota-block-content" style="display:flex;gap:6px;align-items:flex-start">
       ${bullet}
-      <textarea class="nota-block-input ${b.type}" data-id="${b.id}" rows="1"
-        placeholder="${ph}"
+      <div class="nota-block-input ${b.type}" data-id="${b.id}"
+        contenteditable="true" spellcheck="false"
+        data-placeholder="${ph}"
         oninput="notaBlockChange(this)"
         onkeydown="notaBlockKeydown(event,this)"
-      >${escHtml(b.content||'')}</textarea>
+        onpaste="notaBlockPaste(event,this)"
+      >${b.content||''}</div>
     </div>
     <button class="nota-delete-btn" onclick="notaDeleteBlock('${b.id}')">✕</button>
   </div>`;
@@ -4318,7 +4340,7 @@ function notaTitleKeydown(e) {
 function notaBlockChange(el) {
   const nota = getNota(notaActiveId); if (!nota) return;
   const b = nota.blocks.find(b=>b.id===el.dataset.id); if (!b) return;
-  b.content = el.value;
+  b.content = el.innerHTML;
   nota.updated = Date.now();
   autoResize(el);
   debounceSave();
@@ -4329,22 +4351,32 @@ function notaBlockKeydown(e, el) {
   const nota = getNota(notaActiveId); if (!nota) return;
   const bid = el.dataset.id;
   const idx = nota.blocks.findIndex(b=>b.id===bid);
+  const isEmpty = el.textContent.trim() === '';
+
+  // Inline formatting shortcuts
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'b') { e.preventDefault(); document.execCommand('bold'); return; }
+    if (e.key === 'i') { e.preventDefault(); document.execCommand('italic'); return; }
+    if (e.key === 'u') { e.preventDefault(); document.execCommand('underline'); return; }
+    if (e.key === 'k') { e.preventDefault(); notaInsertLink(bid); return; }
+  }
 
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
+    // Save current HTML before re-render
+    nota.blocks[idx].content = el.innerHTML;
     const newId = blkId();
     const curType = nota.blocks[idx].type;
-    // Continue bullet lists, otherwise text
     const newType = curType === 'bullet' && nota.blocks[idx].content ? 'bullet' : 'text';
     nota.blocks.splice(idx+1, 0, {id:newId, type:newType, content:''});
     nota.updated = Date.now();
     renderBlocks(nota);
     setTimeout(() => {
-      const ta = document.querySelector(`.nota-block-input[data-id="${newId}"]`);
-      if (ta) ta.focus();
+      const next = document.querySelector(`.nota-block-input[data-id="${newId}"]`);
+      if (next) { next.focus(); placeCaretAtEnd(next); }
     }, 10);
     debounceSave();
-  } else if (e.key === 'Backspace' && el.value === '' && nota.blocks.length > 1) {
+  } else if (e.key === 'Backspace' && isEmpty && nota.blocks.length > 1) {
     e.preventDefault();
     nota.blocks.splice(idx, 1);
     nota.updated = Date.now();
@@ -4352,22 +4384,88 @@ function notaBlockKeydown(e, el) {
     setTimeout(() => {
       const prev = nota.blocks[Math.max(0,idx-1)];
       const ta = document.querySelector(`.nota-block-input[data-id="${prev?.id}"]`);
-      if (ta) { ta.focus(); ta.selectionStart = ta.value.length; }
+      if (ta) { ta.focus(); placeCaretAtEnd(ta); }
     }, 10);
     debounceSave();
   } else if (e.key === 'ArrowUp') {
     const prev = nota.blocks[idx-1];
-    if (prev) { const ta = document.querySelector(`.nota-block-input[data-id="${prev.id}"]`); ta?.focus(); }
+    if (prev) document.querySelector(`.nota-block-input[data-id="${prev.id}"]`)?.focus();
   } else if (e.key === 'ArrowDown') {
     const next = nota.blocks[idx+1];
-    if (next) { const ta = document.querySelector(`.nota-block-input[data-id="${next.id}"]`); ta?.focus(); }
-  } else if (e.key === '/' && el.value === '') {
+    if (next) document.querySelector(`.nota-block-input[data-id="${next.id}"]`)?.focus();
+  } else if (e.key === '/' && isEmpty) {
     e.preventDefault();
     showBlockMenu(e, bid);
   } else if (e.key === '@') {
     e.preventDefault();
     showTradeMentionMenu(e, bid);
   }
+}
+
+function placeCaretAtEnd(el) {
+  el.focus();
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function notaBlockPaste(e, el) {
+  // Strip formatting on paste — keep plain text only (except in code blocks)
+  const nota = getNota(notaActiveId);
+  const bid = el.dataset.id;
+  const b = nota?.blocks.find(b=>b.id===bid);
+  if (b?.type === 'code') return; // allow raw paste in code
+  e.preventDefault();
+  const text = e.clipboardData.getData('text/plain');
+  document.execCommand('insertText', false, text);
+}
+
+function notaInsertLink(bid) {
+  const url = prompt('URL del enlace:');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // Open links in new tab
+  document.querySelectorAll(`.nota-block-input[data-id="${bid}"] a`).forEach(a => {
+    a.target = '_blank'; a.rel = 'noopener';
+  });
+  const nota = getNota(notaActiveId);
+  const b = nota?.blocks.find(b=>b.id===bid);
+  if (b) { b.content = document.querySelector(`.nota-block-input[data-id="${bid}"]`)?.innerHTML || b.content; debounceSave(); }
+}
+
+function notaImageUpload(input, bid) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const nota = getNota(notaActiveId); if (!nota) return;
+    const b = nota.blocks.find(b=>b.id===bid); if (!b) return;
+    b.content = e.target.result;
+    renderBlocks(nota);
+    debounceSave();
+  };
+  reader.readAsDataURL(file);
+}
+
+function notaImageCaptionChange(el) {
+  const nota = getNota(notaActiveId); if (!nota) return;
+  const b = nota.blocks.find(b=>b.id===el.dataset.id); if (!b) return;
+  b.caption = el.textContent;
+  debounceSave();
+}
+
+function notaImageExpand(img) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+  overlay.onclick = () => overlay.remove();
+  const big = document.createElement('img');
+  big.src = img.src;
+  big.style.cssText = 'max-width:92vw;max-height:90vh;border-radius:4px;box-shadow:0 20px 60px rgba(0,0,0,.8)';
+  overlay.appendChild(big);
+  document.body.appendChild(overlay);
 }
 
 function notaInsertBlock(type) {
@@ -4545,6 +4643,7 @@ function showBlockMenu(e, bid) {
   blockMenuTarget = bid;
   const types = [
     {type:'text',  icon:'¶', label:'Texto'},
+    {type:'image', icon:'🖼', label:'Imagen'},
     {type:'h1',    icon:'H1',label:'Título 1'},
     {type:'h2',    icon:'H2',label:'Título 2'},
     {type:'h3',    icon:'H3',label:'Título 3'},

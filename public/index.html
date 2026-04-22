@@ -383,8 +383,14 @@
               ‹ Calendario
             </button>
             <div class="ntb-sep"></div>
-            <button class="ntb-btn" onclick="notaInsertBlock('text')">¶</button>
+            <!-- Inline formatting -->
+            <button class="ntb-btn ntb-fmt" onclick="document.execCommand('bold')" title="Negrita (Ctrl+B)"><b>B</b></button>
+            <button class="ntb-btn ntb-fmt" onclick="document.execCommand('italic')" title="Cursiva (Ctrl+I)"><i>I</i></button>
+            <button class="ntb-btn ntb-fmt" onclick="document.execCommand('underline')" title="Subrayado (Ctrl+U)" style="text-decoration:underline">U</button>
+            <button class="ntb-btn ntb-fmt" onclick="document.execCommand('strikeThrough')" title="Tachado" style="text-decoration:line-through">S</button>
             <div class="ntb-sep"></div>
+            <!-- Block types -->
+            <button class="ntb-btn" onclick="notaInsertBlock('text')" title="Párrafo">¶</button>
             <button class="ntb-btn" onclick="notaInsertBlock('h1')">H1</button>
             <button class="ntb-btn" onclick="notaInsertBlock('h2')">H2</button>
             <button class="ntb-btn" onclick="notaInsertBlock('h3')">H3</button>
@@ -392,12 +398,13 @@
             <button class="ntb-btn" onclick="notaInsertBlock('bullet')">• Lista</button>
             <button class="ntb-btn" onclick="notaInsertBlock('quote')">" Cita</button>
             <button class="ntb-btn" onclick="notaInsertBlock('code')">⌨ Código</button>
+            <button class="ntb-btn" onclick="notaInsertBlock('image')" title="Insertar imagen">🖼 Imagen</button>
             <button class="ntb-btn" onclick="notaInsertBlock('divider')">— Sep.</button>
             <div class="ntb-sep"></div>
             <button class="ntb-btn" onclick="notaInsertTradeMention()" style="color:var(--amber);font-weight:700">@ Trade</button>
             <div class="ntb-sep"></div>
-            <button class="ntb-btn" onclick="insertPlantilla('semana')" style="color:#5ab4e8;font-weight:700" title="Insertar preguntas entre semana">📋 Entre semana</button>
-            <button class="ntb-btn" onclick="insertPlantilla('finde')"  style="color:#5ab4e8;font-weight:700" title="Insertar preguntas fin de semana">📋 Fin de semana</button>
+            <button class="ntb-btn" onclick="insertPlantilla('semana')" style="color:#5ab4e8;font-weight:700" title="Entre semana">📋 Entre semana</button>
+            <button class="ntb-btn" onclick="insertPlantilla('finde')"  style="color:#5ab4e8;font-weight:700" title="Fin de semana">📋 Fin de semana</button>
             <div style="margin-left:auto;display:flex;gap:4px">
               <button class="ntb-btn" onclick="notaDelete()" style="color:var(--red)">🗑</button>
             </div>

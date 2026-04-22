@@ -491,13 +491,22 @@ tr:hover .sector-edit-btn{opacity:1;}
 .nota-block-left{display:flex;align-items:flex-start;gap:4px;flex-shrink:0;width:20px;}
 .nota-block-bullet{color:var(--dim);font-size:18px;line-height:1.7;user-select:none;}
 .nota-block-content{flex:1;min-width:0;}
-.nota-block-input{width:100%;background:transparent;border:none;color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.75;outline:none;padding:2px 0;resize:none;overflow:hidden;}
-.nota-block-input::placeholder{color:var(--muted);}
+/* contenteditable block inputs */
+.nota-block-input{flex:1;min-width:0;background:transparent;border:none;color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.75;outline:none;padding:2px 0;word-break:break-word;white-space:pre-wrap;}
+.nota-block-input:empty::before{content:attr(data-placeholder);color:var(--muted);pointer-events:none;font-style:normal;}
+.nota-block-input:focus:empty::before{opacity:.5;}
+/* Inline formatting inside contenteditable */
+.nota-block-input b,.nota-block-input strong{font-weight:700;}
+.nota-block-input i,.nota-block-input em{font-style:italic;}
+.nota-block-input u{text-decoration:underline;}
+.nota-block-input s,.nota-block-input strike{text-decoration:line-through;}
+.nota-block-input a{color:var(--amber);text-underline-offset:3px;}
+.nota-block-input a:hover{text-decoration:underline;}
 .nota-block-input.h1{font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.4;}
 .nota-block-input.h2{font-size:17px;font-weight:700;line-height:1.5;}
 .nota-block-input.h3{font-size:14px;font-weight:700;color:var(--dim);line-height:1.6;}
 .nota-block-input.quote{border-left:3px solid var(--amber);padding-left:14px;color:var(--dim);font-style:italic;}
-.nota-block-input.code{font-family:var(--mono);font-size:12px;background:var(--bg3);padding:10px 14px;border-radius:4px;color:#a8d8a0;line-height:1.6;}
+.nota-block-input.code{font-family:var(--mono);font-size:12px;background:var(--bg3);padding:10px 14px;border-radius:4px;color:#a8d8a0;line-height:1.6;white-space:pre-wrap;}
 .nota-block-divider{border:none;border-top:1px solid var(--border2);width:100%;margin:10px 0;}
 .notas-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);gap:14px;}
 .notas-empty-icon{font-size:52px;opacity:.25;}
@@ -554,6 +563,21 @@ tr:hover .sector-edit-btn{opacity:1;}
 .nota-trade-detail{font-family:var(--sans);font-size:11px;color:var(--dim);}
 .nota-trade-remove{margin-left:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;border-radius:3px;}
 .nota-trade-remove:hover{color:var(--red);}
+
+/* ── Image blocks ── */
+.nota-image-block-wrap{flex-direction:column;align-items:stretch;gap:0;}
+.nota-image-block-content{flex:1;min-width:0;}
+.nota-image-upload-label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--border2);border-radius:8px;padding:28px 20px;cursor:pointer;transition:all .2s;color:var(--dim);}
+.nota-image-upload-label:hover{border-color:var(--amber);background:rgba(var(--accent-rgb),.04);color:var(--amber);}
+.nota-image-upload-icon{font-size:28px;}
+.nota-image-upload-sub{font-size:11px;color:var(--muted);}
+.nota-image{max-width:100%;border-radius:6px;display:block;cursor:zoom-in;margin-bottom:6px;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.nota-image-caption{font-family:var(--sans);font-size:12px;color:var(--muted);outline:none;padding:3px 0;min-height:1.4em;text-align:center;}
+.nota-image-caption:empty::before{content:attr(data-placeholder);color:var(--muted);opacity:.5;pointer-events:none;}
+
+/* ── Formatting toolbar buttons ── */
+.ntb-fmt{font-size:12px;min-width:26px;text-align:center;}
+.ntb-btn b,.ntb-btn i{font-family:Georgia,serif;}
 
 /* ── Daily Journal Modal ── */
 .journal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;}
