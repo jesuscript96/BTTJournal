@@ -3847,7 +3847,8 @@ function renderNotasList() {
       (n.title||'').toLowerCase().includes(q) ||
       notaDateISO(n).includes(q) ||
       new Date(n.noteDate||n.updated).toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).toLowerCase().includes(q) ||
-      n.blocks?.some(b => (b.content||'').toLowerCase().includes(q))
+      n.blocks?.some(b => (b.content||'').toLowerCase().includes(q)) ||
+      n.editorData?.blocks?.some(b => JSON.stringify(b.data||'').toLowerCase().includes(q))
     );
     el.innerHTML = list.map(n => notaItemHtml(n)).join('')
       || '<div style="padding:20px 16px;font-family:var(--sans);font-size:12px;color:var(--muted)">Sin resultados</div>';
@@ -3974,6 +3975,8 @@ function openNota(id) {
 
 function getNota(id) { return notas.find(n=>n.id===id); }
 
+let editorInstance = null;
+
 function renderNotaEditor(id) {
   const nota = getNota(id);
   if (!nota) { document.getElementById('notas-editor-panel').style.display='none'; return; }
@@ -3987,15 +3990,78 @@ function renderNotaEditor(id) {
     <textarea class="nota-title-input" id="nota-title" placeholder="Sin título" rows="1"
       oninput="notaTitleChange(this)" onkeydown="notaTitleKeydown(event)">${escHtml(nota.title||'')}</textarea>
     <div class="nota-date-display" style="display:flex;align-items:center;gap:8px">
-      <span id="nota-date-label" style="cursor:pointer;border-bottom:1px dashed var(--border3)" onclick="toggleNotaDatePicker('${id}')" title="Cambiar fecha">${dateFmt}</span>
+      <span id="nota-date-label" style="cursor:pointer;border-bottom:1px dashed var(--border2)" onclick="toggleNotaDatePicker('${id}')" title="Cambiar fecha">${dateFmt}</span>
       <input type="date" id="nota-date-picker" value="${dateISO}" style="display:none;background:var(--bg3);border:1px solid var(--amber);color:var(--text);font-family:var(--sans);font-size:11px;padding:3px 6px;border-radius:4px;outline:none"
         onchange="setNotaDate('${id}',this.value)" onblur="document.getElementById('nota-date-picker').style.display='none'">
     </div>
-    <div class="nota-blocks" id="nota-blocks"></div>
+    <div id="editorjs-holder"></div>
   `;
   autoResize(document.getElementById('nota-title'));
-  renderBlocks(nota);
+
+  if (editorInstance) { try { editorInstance.destroy(); } catch(e){} editorInstance = null; }
+
+  editorInstance = new EditorJS({
+    holder: 'editorjs-holder',
+    data: notaToEditorData(nota),
+    placeholder: 'Escribe algo… (usa / para añadir bloques)',
+    tools: {
+      header:     { class: Header, config: { levels: [1,2,3], defaultLevel: 2 } },
+      list:       { class: List, inlineToolbar: true },
+      quote:      { class: Quote, inlineToolbar: true },
+      code:       CodeTool,
+      delimiter:  Delimiter,
+      image:      { class: ImageTool, config: { uploader: { uploadByFile: editorUploadFile, uploadByUrl: u => Promise.resolve({success:1,file:{url:u}}) } } },
+      table:      { class: Table, inlineToolbar: true },
+      Marker:     { class: Marker, shortcut: 'CMD+SHIFT+M' },
+      inlineCode: { class: InlineCode },
+      underline:  Underline,
+    },
+    i18n: { messages: {
+      toolNames: { Text:'Texto', Heading:'Título', List:'Lista', Quote:'Cita', Code:'Código', Delimiter:'Separador', Image:'Imagen', Table:'Tabla', Bold:'Negrita', Italic:'Cursiva', Marker:'Resaltar', InlineCode:'Código inline', Underline:'Subrayado' },
+      tools: { list: { Ordered:'Numerada', Unordered:'Sin orden' } },
+      blockTunes: { delete:{ Delete:'Eliminar' }, moveUp:{ 'Move up':'Mover arriba' }, moveDown:{ 'Move down':'Mover abajo' } },
+      ui: { toolbar:{ toolbox:{ Add:'Añadir' } }, popover:{ Filter:'Buscar', 'Nothing found':'No encontrado' } },
+    }},
+    onChange: async (api) => {
+      try {
+        const data = await api.saver.save();
+        const nota = getNota(notaActiveId); if (!nota) return;
+        nota.editorData = data;
+        nota.updated = Date.now();
+        debounceSave();
+      } catch(e) {}
+    },
+  });
+
   renderTagsBar(nota);
+}
+
+function notaToEditorData(nota) {
+  if (nota.editorData?.blocks?.length) return nota.editorData;
+  // Convert old block format
+  const blocks = (nota.blocks || []).map(b => {
+    switch(b.type) {
+      case 'text':    return { type:'paragraph', data:{ text: b.content||'' } };
+      case 'h1':      return { type:'header',    data:{ text: b.content||'', level:1 } };
+      case 'h2':      return { type:'header',    data:{ text: b.content||'', level:2 } };
+      case 'h3':      return { type:'header',    data:{ text: b.content||'', level:3 } };
+      case 'bullet':  return { type:'list',      data:{ style:'unordered', items:[b.content||''] } };
+      case 'quote':   return { type:'quote',     data:{ text: b.content||'', caption:'', alignment:'left' } };
+      case 'code':    return { type:'code',      data:{ code: b.content||'' } };
+      case 'divider': return { type:'delimiter', data:{} };
+      case 'image':   return b.content ? { type:'image', data:{ file:{ url:b.content }, caption:b.caption||'', withBorder:false, withBackground:false, stretched:false } } : null;
+      default:        return b.content ? { type:'paragraph', data:{ text: b.content||'' } } : null;
+    }
+  }).filter(Boolean);
+  return { blocks: blocks.length ? blocks : [{ type:'paragraph', data:{ text:'' } }] };
+}
+
+function editorUploadFile(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => resolve({ success:1, file:{ url: e.target.result } });
+    reader.readAsDataURL(file);
+  });
 }
 
 function renderBlocks(nota) {
@@ -4481,40 +4547,21 @@ function notaInsertBlock(type) {
   debounceSave();
 }
 
-function insertPlantilla(tipo) {
-  const nota = getNota(notaActiveId); if (!nota) return;
-  const semana = [
-    '🏆 Mejor play y por qué:',
-    '💀 Peor play y por qué:',
-    '🔧 ¿Qué mejorar?',
-    '✅ ¿Qué he hecho bien?',
-    '📌 ¿Qué recordar mañana?',
-  ];
-  const finde = [
-    '🌍 Entorno de mercado esta semana:',
-    '🎯 Plays que mejor han funcionado:',
-    '⚠️ Con qué tener cuidado la semana que viene:',
-    '📚 ¿Qué he aprendido esta semana?',
-    '🚀 Objetivo / foco para la próxima semana:',
-  ];
+async function insertPlantilla(tipo) {
+  if (!editorInstance) return;
+  const semana = ['🏆 Mejor play y por qué:', '💀 Peor play y por qué:', '🔧 ¿Qué mejorar?', '✅ ¿Qué he hecho bien?', '📌 ¿Qué recordar mañana?'];
+  const finde  = ['🌍 Entorno de mercado esta semana:', '🎯 Plays que mejor han funcionado:', '⚠️ Con qué tener cuidado la semana que viene:', '📚 ¿Qué he aprendido esta semana?', '🚀 Objetivo / foco para la próxima semana:'];
   const preguntas = tipo === 'finde' ? finde : semana;
   const titulo    = tipo === 'finde' ? '📅 Reflexión semanal' : '📅 Reflexión del día';
-  // Insert a divider, then a H2 title, then one h3+text pair per question
-  nota.blocks.push({ id: blkId(), type: 'divider', content: '' });
-  nota.blocks.push({ id: blkId(), type: 'h2', content: titulo });
-  let lastId;
-  preguntas.forEach(q => {
-    nota.blocks.push({ id: blkId(), type: 'h3', content: q });
-    lastId = blkId();
-    nota.blocks.push({ id: lastId, type: 'text', content: '' });
-  });
-  nota.updated = Date.now();
-  renderBlocks(nota);
-  setTimeout(() => {
-    const ta = document.querySelector(`.nota-block-input[data-id="${lastId}"]`);
-    if (ta) ta.focus();
-  }, 30);
-  debounceSave();
+  let idx = editorInstance.blocks.getCurrentBlockIndex();
+  if (idx < 0) idx = editorInstance.blocks.getBlocksCount() - 1;
+  let pos = idx + 1;
+  editorInstance.blocks.insert('delimiter', {}, {}, pos++);
+  editorInstance.blocks.insert('header', { text: titulo, level: 2 }, {}, pos++);
+  for (const q of preguntas) {
+    editorInstance.blocks.insert('header',    { text: q, level: 3 }, {}, pos++);
+    editorInstance.blocks.insert('paragraph', { text: '' },          {}, pos++);
+  }
 }
 
 function notaDeleteBlock(bid) {

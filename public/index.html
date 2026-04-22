@@ -379,29 +379,7 @@
         <div class="notas-bigcal" id="notas-bigcal"></div>
         <div class="notas-editor-panel" id="notas-editor-panel" style="display:none">
           <div class="notas-toolbar" id="notas-toolbar">
-            <button class="ntb-btn ntb-back" onclick="closeNotaEditor()" title="Volver al calendario">
-              ‹ Calendario
-            </button>
-            <div class="ntb-sep"></div>
-            <!-- Inline formatting -->
-            <button class="ntb-btn ntb-fmt" onclick="document.execCommand('bold')" title="Negrita (Ctrl+B)"><b>B</b></button>
-            <button class="ntb-btn ntb-fmt" onclick="document.execCommand('italic')" title="Cursiva (Ctrl+I)"><i>I</i></button>
-            <button class="ntb-btn ntb-fmt" onclick="document.execCommand('underline')" title="Subrayado (Ctrl+U)" style="text-decoration:underline">U</button>
-            <button class="ntb-btn ntb-fmt" onclick="document.execCommand('strikeThrough')" title="Tachado" style="text-decoration:line-through">S</button>
-            <div class="ntb-sep"></div>
-            <!-- Block types -->
-            <button class="ntb-btn" onclick="notaInsertBlock('text')" title="Párrafo">¶</button>
-            <button class="ntb-btn" onclick="notaInsertBlock('h1')">H1</button>
-            <button class="ntb-btn" onclick="notaInsertBlock('h2')">H2</button>
-            <button class="ntb-btn" onclick="notaInsertBlock('h3')">H3</button>
-            <div class="ntb-sep"></div>
-            <button class="ntb-btn" onclick="notaInsertBlock('bullet')">• Lista</button>
-            <button class="ntb-btn" onclick="notaInsertBlock('quote')">" Cita</button>
-            <button class="ntb-btn" onclick="notaInsertBlock('code')">⌨ Código</button>
-            <button class="ntb-btn" onclick="notaInsertBlock('image')" title="Insertar imagen">🖼 Imagen</button>
-            <button class="ntb-btn" onclick="notaInsertBlock('divider')">— Sep.</button>
-            <div class="ntb-sep"></div>
-            <button class="ntb-btn" onclick="notaInsertTradeMention()" style="color:var(--amber);font-weight:700">@ Trade</button>
+            <button class="ntb-btn ntb-back" onclick="closeNotaEditor()" title="Volver al calendario">‹ Calendario</button>
             <div class="ntb-sep"></div>
             <button class="ntb-btn" onclick="insertPlantilla('semana')" style="color:#5ab4e8;font-weight:700" title="Entre semana">📋 Entre semana</button>
             <button class="ntb-btn" onclick="insertPlantilla('finde')"  style="color:#5ab4e8;font-weight:700" title="Fin de semana">📋 Fin de semana</button>
@@ -670,5 +648,17 @@
 <div class="toasts" id="toasts"></div>
 
 </body>
+<!-- Editor.js -->
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2.29.1/dist/editorjs.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/header@2.8.1/dist/header.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/list@1.9.0/dist/list.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/quote@2.6.0/dist/quote.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/code@2.9.0/dist/code.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/delimiter@1.4.2/dist/delimiter.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/image@2.9.0/dist/bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/marker@1.4.0/dist/bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/inline-code@1.5.0/dist/inline-code.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/underline@1.1.0/dist/underline.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/table@2.3.0/dist/table.umd.min.js"></script>
 <script src="/app.js" defer></script>
 </html>
