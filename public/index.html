@@ -441,6 +441,33 @@
 <div class="page" id="page-settings">
 <div class="settings-layout">
 
+  <!-- DB Health -->
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="sh-icon">🗄</span>
+      <div><div class="sh-title">Base de datos</div><div class="sh-sub">Estado de la conexión con PostgreSQL (Neon)</div></div>
+      <button class="btn btn-ghost" style="margin-left:auto;width:auto;padding:4px 12px;font-size:11px;margin-top:0" onclick="checkDBHealth()">↻ Verificar</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <div><div class="sr-label">Conexión</div></div>
+        <div class="sr-val" id="db-status">—</div>
+      </div>
+      <div class="settings-row">
+        <div><div class="sr-label">Latencia</div></div>
+        <div class="sr-val" id="db-latency">—</div>
+      </div>
+      <div class="settings-row">
+        <div><div class="sr-label">Entorno</div></div>
+        <div class="sr-val" id="db-env">—</div>
+      </div>
+      <div class="settings-row">
+        <div><div class="sr-label">Filas guardadas (KV)</div></div>
+        <div class="sr-val" id="db-rows">—</div>
+      </div>
+    </div>
+  </div>
+
   <div class="settings-section">
     <div class="settings-section-header">
       <span class="sh-icon">◈</span>

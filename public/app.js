@@ -841,7 +841,7 @@ function setTab(tab) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + tab).classList.add('active');
   if (tab === 'analytics')   { computeAllRS(); renderAnalytics(); }
-  if (tab === 'settings')    renderSettings();
+  if (tab === 'settings')    { renderSettings(); checkDBHealth(); }
   if (tab === 'calendario')  { computeAllRS(); renderCalendario(); }
   if (tab === 'notas')       renderNotas();
 }
@@ -2892,6 +2892,31 @@ function renderMonthly(data) {
 // ═══════════════════════════════
 // SETTINGS
 // ═══════════════════════════════
+async function checkDBHealth() {
+  const setEl = (id, txt, color) => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = txt; if (color) el.style.color = color; }
+  };
+  setEl('db-status', 'Verificando…', 'var(--dim)');
+  setEl('db-latency', '…');
+  setEl('db-env', '…');
+  setEl('db-rows', '…');
+  try {
+    const r = await fetch('/api/health');
+    const d = await r.json();
+    if (d.ok) {
+      setEl('db-status', '✓ Conectada', 'var(--green)');
+      setEl('db-latency', d.latency_ms + ' ms', d.latency_ms < 200 ? 'var(--green)' : d.latency_ms < 800 ? 'var(--amber)' : 'var(--red)');
+      setEl('db-env', d.env, 'var(--text)');
+      setEl('db-rows', d.rows.kv + ' entradas', 'var(--text)');
+    } else {
+      setEl('db-status', '✗ Error: ' + d.error, 'var(--red)');
+    }
+  } catch(e) {
+    setEl('db-status', '✗ Sin conexión', 'var(--red)');
+  }
+}
+
 function renderSettings() {
   document.getElementById('cfg-total').textContent = trades.length + ' trades';
   if (trades.length) {
