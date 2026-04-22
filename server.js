@@ -4,6 +4,7 @@ const path       = require('path');
 const { initDB } = require('./db/database');
 
 const tradesRouter = require('./routes/trades');
+const storeRouter  = require('./routes/store');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -13,6 +14,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/trades', tradesRouter);
+app.use('/api/store',  storeRouter);
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

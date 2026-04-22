@@ -918,11 +918,11 @@ function importFile() {
 // ═══════════════════════════════
 let dasPreview    = []; // [{dateISO, symbol, type, entry, exit, qty, net, isPreview:true}]
 async function loadDASPreview() {
-  try { dasPreview = (await idbGet('tj_das_preview')) || []; } catch(e) { dasPreview = []; }
+  try { const _r = await fetch('/api/store/das_preview'); dasPreview = (_r.ok ? await _r.json() : null) ?? []; } catch(e) { dasPreview = []; }
   refreshDASBtn();
 }
 async function saveDASPreview() {
-  try { await idbSet('tj_das_preview', dasPreview); } catch(e) {}
+  try { await fetch('/api/store/das_preview', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(dasPreview) }); } catch(e) {}
 }
 
 function refreshDASBtn() {
@@ -3305,10 +3305,10 @@ const TAG_COLORS = {
 const ALL_TAGS = Object.keys(TAG_COLORS);
 
 async function loadNotas() {
-  try { notas = (await idbGet('tj_notas')) || []; } catch(e) { notas = []; }
+  try { const _r = await fetch('/api/store/notas'); notas = (_r.ok ? await _r.json() : null) ?? []; } catch(e) { notas = []; }
 }
 async function saveNotas() {
-  try { await idbSet('tj_notas', notas); } catch(e) {}
+  try { await fetch('/api/store/notas', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(notas) }); } catch(e) {}
 }
 
 function renderNotas() {
@@ -3381,40 +3381,16 @@ function reflId() { return 'r' + Date.now().toString(36) + Math.random().toStrin
 
 async function loadReflexiones() {
   try {
-    const db  = await openDB();
-    const tx  = db.transaction('meta','readonly');
-    const val = await new Promise((res) => {
-      const req = tx.objectStore('meta').get('reflexiones_list');
-      req.onsuccess = () => res(req.result?.value || []);
-      req.onerror   = () => res([]);
-    });
-    reflexiones = Array.isArray(val) ? val : [];
-    // Migrate old single-string reflexion
-    if (!reflexiones.length) {
-      const old = await new Promise((res) => {
-        const db2 = db;
-        const tx2 = db2.transaction('meta','readonly');
-        const req2 = tx2.objectStore('meta').get('reflexiones');
-        req2.onsuccess = () => res(req2.result?.value || '');
-        req2.onerror   = () => res('');
-      });
-      if (old && typeof old === 'string' && old.trim()) {
-        reflexiones = [{ id: reflId(), title: 'Reflexión inicial', created: Date.now(), updated: Date.now(),
-          blocks: [{ id: blkId(), type: 'text', content: old.replace(/<[^>]+>/g,' ').trim() }] }];
-        saveReflexiones();
-      }
-    }
+    const _r = await fetch('/api/store/reflexiones');
+    reflexiones = (_r.ok ? await _r.json() : null) ?? [];
+    if (!Array.isArray(reflexiones)) reflexiones = [];
   } catch(e) { reflexiones = []; }
   renderReflList();
   if (reflexiones.length) openReflexion(reflexiones[0].id);
 }
 
 async function saveReflexiones() {
-  try {
-    const db = await openDB();
-    const tx = db.transaction('meta','readwrite');
-    tx.objectStore('meta').put({ key: 'reflexiones_list', value: reflexiones });
-  } catch(e) {}
+  try { await fetch('/api/store/reflexiones', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reflexiones) }); } catch(e) {}
 }
 
 function renderReflList() {
@@ -4774,10 +4750,10 @@ let dayNotes = {}; // { 'YYYY-MM-DD': { mood, notes, lessons } }
 let journalDateOpen = null;
 
 async function loadDayNotes() {
-  try { dayNotes = (await idbGet('tj_day_notes')) || {}; } catch(e) { dayNotes = {}; }
+  try { const _r = await fetch('/api/store/day_notes'); dayNotes = (_r.ok ? await _r.json() : null) ?? {}; } catch(e) { dayNotes = {}; }
 }
 async function saveDayNotes() {
-  try { await idbSet('tj_day_notes', dayNotes); } catch(e) {}
+  try { await fetch('/api/store/day_notes', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(dayNotes) }); } catch(e) {}
 }
 
 
