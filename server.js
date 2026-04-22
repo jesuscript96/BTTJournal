@@ -1,6 +1,7 @@
-const express = require('express');
-const cors    = require('cors');
-const path    = require('path');
+const express    = require('express');
+const cors       = require('cors');
+const path       = require('path');
+const { initDB } = require('./db/database');
 
 const tradesRouter = require('./routes/trades');
 
@@ -13,11 +14,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/trades', tradesRouter);
 
-// Fallback: sirve index.html para cualquier ruta no-API
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`BTT Journal corriendo en http://localhost:${PORT}`);
-});
+initDB()
+  .then(() => app.listen(PORT, () => console.log(`BTT Journal en http://localhost:${PORT}`)))
+  .catch(err => { console.error('DB init failed:', err); process.exit(1); });
+
+module.exports = app;
