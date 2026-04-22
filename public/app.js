@@ -4872,6 +4872,21 @@ function closeJournal() {
   journalDateOpen = null;
 }
 
+
+// ═══════════════════════════════
+// THEME TOGGLE
+// ═══════════════════════════════
+function toggleTheme() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('tj_theme', isDark ? 'dark' : 'light');
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+}
+
+function initThemeIcon() {
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+}
 // ═══════════════════════════════
 // BOOT
 // ═══════════════════════════════
@@ -4882,4 +4897,5 @@ function closeJournal() {
   await loadDASPreview();
   loadMassiveKey();
   if (trades.length) renderAll();
+  initThemeIcon();
 })();

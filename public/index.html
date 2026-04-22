@@ -1,6 +1,13 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
 <head>
+<script>
+  (function() {
+    const t = localStorage.getItem('tj_theme');
+    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches))
+      document.documentElement.classList.add('dark');
+  })();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trading Journal</title>
@@ -22,6 +29,7 @@
     <button class="tab-btn" onclick="setTab('notas')">Notas</button>
     <button class="tab-btn" onclick="setTab('settings')">Ajustes</button>
   </nav>
+  <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
   <div class="topbar-right" id="topbar-stats" style="display:none">
     <div class="topbar-stat"><span class="label">TRADES</span><span class="val amber" id="ts-total">—</span></div>
     <div class="topbar-stat"><span class="label">NET P&L</span><span class="val" id="ts-pnl">—</span></div>
