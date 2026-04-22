@@ -4000,38 +4000,45 @@ function renderNotaEditor(id) {
 
   if (editorInstance) { try { editorInstance.destroy(); } catch(e){} editorInstance = null; }
 
-  editorInstance = new EditorJS({
-    holder: 'editorjs-holder',
-    data: notaToEditorData(nota),
-    placeholder: 'Escribe algo… (usa / para añadir bloques)',
-    tools: {
-      header:     { class: Header, config: { levels: [1,2,3], defaultLevel: 2 } },
-      list:       { class: List, inlineToolbar: true },
-      quote:      { class: Quote, inlineToolbar: true },
-      code:       CodeTool,
-      delimiter:  Delimiter,
-      image:      { class: ImageTool, config: { uploader: { uploadByFile: editorUploadFile, uploadByUrl: u => Promise.resolve({success:1,file:{url:u}}) } } },
-      table:      { class: Table, inlineToolbar: true },
-      Marker:     { class: Marker, shortcut: 'CMD+SHIFT+M' },
-      inlineCode: { class: InlineCode },
-      underline:  Underline,
-    },
-    i18n: { messages: {
-      toolNames: { Text:'Texto', Heading:'Título', List:'Lista', Quote:'Cita', Code:'Código', Delimiter:'Separador', Image:'Imagen', Table:'Tabla', Bold:'Negrita', Italic:'Cursiva', Marker:'Resaltar', InlineCode:'Código inline', Underline:'Subrayado' },
-      tools: { list: { Ordered:'Numerada', Unordered:'Sin orden' } },
-      blockTunes: { delete:{ Delete:'Eliminar' }, moveUp:{ 'Move up':'Mover arriba' }, moveDown:{ 'Move down':'Mover abajo' } },
-      ui: { toolbar:{ toolbox:{ Add:'Añadir' } }, popover:{ Filter:'Buscar', 'Nothing found':'No encontrado' } },
-    }},
-    onChange: async (api) => {
-      try {
-        const data = await api.saver.save();
-        const nota = getNota(notaActiveId); if (!nota) return;
-        nota.editorData = data;
-        nota.updated = Date.now();
-        debounceSave();
-      } catch(e) {}
-    },
-  });
+  // Build tools defensively — a missing CDN global must not crash the whole editor
+  const ejsTools = {};
+  if (typeof Header     !== 'undefined') ejsTools.header     = { class: Header, config: { levels:[1,2,3], defaultLevel:2 } };
+  if (typeof List       !== 'undefined') ejsTools.list       = { class: List, inlineToolbar: true };
+  if (typeof Quote      !== 'undefined') ejsTools.quote      = { class: Quote, inlineToolbar: true };
+  if (typeof CodeTool   !== 'undefined') ejsTools.code       = CodeTool;
+  if (typeof Delimiter  !== 'undefined') ejsTools.delimiter  = Delimiter;
+  if (typeof ImageTool  !== 'undefined') ejsTools.image      = { class: ImageTool, config: { uploader: { uploadByFile: editorUploadFile, uploadByUrl: u => Promise.resolve({success:1,file:{url:u}}) } } };
+  if (typeof Table      !== 'undefined') ejsTools.table      = { class: Table, inlineToolbar: true };
+  if (typeof Marker     !== 'undefined') ejsTools.Marker     = { class: Marker, shortcut: 'CMD+SHIFT+M' };
+  if (typeof InlineCode !== 'undefined') ejsTools.inlineCode = { class: InlineCode };
+  if (typeof Underline  !== 'undefined') ejsTools.underline  = Underline;
+
+  try {
+    editorInstance = new EditorJS({
+      holder: 'editorjs-holder',
+      data: notaToEditorData(nota),
+      placeholder: 'Escribe algo… (/ para comandos, @ para mencionar un trade)',
+      tools: ejsTools,
+      i18n: { messages: {
+        toolNames: { Text:'Texto', Heading:'Título', List:'Lista', Quote:'Cita', Code:'Código', Delimiter:'Separador', Image:'Imagen', Table:'Tabla', Bold:'Negrita', Italic:'Cursiva', Marker:'Resaltar', InlineCode:'Código', Underline:'Subrayado' },
+        tools: { list: { Ordered:'Numerada', Unordered:'Sin orden' } },
+        blockTunes: { delete:{ Delete:'Eliminar' }, moveUp:{ 'Move up':'Arriba' }, moveDown:{ 'Move down':'Abajo' } },
+        ui: { toolbar:{ toolbox:{ Add:'Añadir' } }, popover:{ Filter:'Buscar', 'Nothing found':'Sin resultados' } },
+      }},
+      onChange: async (api) => {
+        try {
+          const data = await api.saver.save();
+          const nota = getNota(notaActiveId); if (!nota) return;
+          nota.editorData = data;
+          nota.updated = Date.now();
+          debounceSave();
+        } catch(e) {}
+      },
+    });
+  } catch(e) {
+    console.error('EditorJS init error:', e);
+    document.getElementById('editorjs-holder').innerHTML = '<div style="padding:20px;color:var(--red);font-size:12px">Error cargando el editor. Recarga la página.</div>';
+  }
 
   renderTagsBar(nota);
 }
@@ -4054,6 +4061,17 @@ function notaToEditorData(nota) {
     }
   }).filter(Boolean);
   return { blocks: blocks.length ? blocks : [{ type:'paragraph', data:{ text:'' } }] };
+}
+
+function editorInsertBlock(type, data = {}) {
+  if (!editorInstance) return;
+  try {
+    let idx = editorInstance.blocks.getCurrentBlockIndex();
+    if (idx < 0) idx = editorInstance.blocks.getBlocksCount() - 1;
+    editorInstance.blocks.insert(type, data, {}, idx + 1, true);
+  } catch(e) {
+    try { editorInstance.blocks.insert(type, data); } catch(e2) {}
+  }
 }
 
 function editorUploadFile(file) {
