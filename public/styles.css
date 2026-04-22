@@ -583,7 +583,7 @@ tr:hover .sector-edit-btn{opacity:1;}
 #editorjs-holder { padding: 4px 0 60px; }
 .codex-editor { font-family: var(--sans); color: var(--text); }
 /* Give left space so the floating toolbar doesn't overlap text */
-.codex-editor__redactor { padding-left: 50px !important; padding-bottom: 60px !important; }
+.codex-editor__redactor { padding-left: 20px !important; padding-bottom: 60px !important; }
 /* Full width blocks, but constrained within the editor padding */
 .ce-block__content { max-width: 100% !important; margin: 0 !important; }
 /* Paragraph */
