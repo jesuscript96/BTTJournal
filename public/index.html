@@ -1,0 +1,659 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading Journal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<div class="shell">
+
+<!-- ── TOPBAR ── -->
+<div class="topbar">
+  <div class="topbar-brand">TRADING JOURNAL</div>
+  <nav class="tab-nav">
+    <button class="tab-btn active" onclick="setTab('trades')">Trades</button>
+    <button class="tab-btn" onclick="setTab('analytics')">Analytics</button>
+    <button class="tab-btn" onclick="setTab('calendario')">Calendario</button>
+    <button class="tab-btn" onclick="setTab('notas')">Notas</button>
+    <button class="tab-btn" onclick="setTab('settings')">Ajustes</button>
+  </nav>
+  <div class="topbar-right" id="topbar-stats" style="display:none">
+    <div class="topbar-stat"><span class="label">TRADES</span><span class="val amber" id="ts-total">—</span></div>
+    <div class="topbar-stat"><span class="label">NET P&L</span><span class="val" id="ts-pnl">—</span></div>
+    <div class="topbar-stat"><span class="label">WIN RATE</span><span class="val amber" id="ts-wr">—</span></div>
+    <div class="topbar-stat"><span class="label">AVG R</span><span class="val amber" id="ts-r">—</span></div>
+    <div class="topbar-stat"><span class="label">PROFIT F.</span><span class="val amber" id="ts-pf">—</span></div>
+  </div>
+</div>
+
+<!-- ══ PAGE: TRADES ══ -->
+<div class="page active" id="page-trades">
+<div class="trades-layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Importar</div>
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".xls,.xlsx,.csv">
+        <div class="drop-icon">⬆</div>
+        <div class="drop-text">Arrastra el ProPReport</div>
+        <div class="drop-sub">.xls · .xlsx · .csv</div>
+      </div>
+      <div class="file-name" id="file-name"></div>
+      <button class="btn btn-amber" id="import-btn" disabled onclick="importFile()">IMPORTAR</button>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label" style="color:var(--dim)">Preview DAS</div>
+      <div class="drop-zone" id="drop-zone-das" style="border-color:rgba(45,125,210,.4)">
+        <input type="file" id="file-input-das" accept=".csv">
+        <div class="drop-icon" style="color:#4a94e8">⬆</div>
+        <div class="drop-text" style="color:var(--dim)">Trades.csv de DAS</div>
+        <div class="drop-sub">Preview en calendario</div>
+      </div>
+      <div class="file-name" id="file-name-das"></div>
+      <button class="btn" id="import-btn-das" disabled onclick="importDAS()"
+        style="background:rgba(45,125,210,.2);border-color:rgba(45,125,210,.4);color:#4a94e8">PREVIEW</button>
+      <button class="btn btn-ghost" id="clear-das-btn" style="display:none;margin-top:4px;font-size:10px" onclick="clearDASPreview()">✕ Borrar preview</button>
+    </div>
+
+    <div class="sb-section" style="margin-top:auto">
+      <button class="btn btn-ghost" id="export-btn" style="display:none" onclick="exportCSV()">EXPORTAR CSV</button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-area">
+    <div class="toolbar">
+      <input class="search" type="text" placeholder="Buscar símbolo…" id="search-input" oninput="renderTable()">
+      <span class="count" id="row-count">0 trades</span>
+      <div class="toolbar-right">
+        <span style="font-size:9px;color:var(--muted)">
+          <span style="color:var(--amber)">■</span> EDITABLE &nbsp;
+          <span style="color:var(--dim)">■</span> AUTO
+        </span>
+      </div>
+    </div>
+    <div class="table-wrap" id="table-wrap">
+      <div class="empty" id="empty-state">
+        <div class="empty-icon">◫</div>
+        <div class="empty-title">Sin datos</div>
+        <div class="empty-sub" style="margin-bottom:16px">Importa un ProPReport para empezar</div>
+        <div style="background:rgba(232,160,32,.08);border:1px solid rgba(232,160,32,.2);padding:14px 20px;text-align:center;max-width:320px;">
+          <div style="font-size:11px;color:var(--amber);font-weight:600;margin-bottom:6px;font-family:var(--sans)">¿Ya tenías datos?</div>
+          <div style="font-size:11px;color:var(--dim);margin-bottom:10px;font-family:var(--sans);line-height:1.5">Si guardaste un backup JSON, ve a <strong style="color:var(--text)">Ajustes → Cargar JSON</strong> para restaurarlos</div>
+          <button class="btn btn-ghost" style="width:auto;margin:0;font-size:10px" onclick="setTab('settings')">IR A AJUSTES →</button>
+        </div>
+      </div>
+      <table id="main-table" style="display:none">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══ PAGE: ANALYTICS ══ -->
+<div class="page" id="page-analytics">
+<div class="analytics-layout">
+
+  <!-- Time window selector -->
+  <div class="an-timewin" id="an-timewin">
+    <span class="an-tw-label">📅 Período</span>
+    <div class="an-tw-presets">
+      <button class="an-tw-btn active" onclick="setAnalyticsWindow('all')">Todo</button>
+      <button class="an-tw-btn" onclick="setAnalyticsWindow('ytd')">Este año</button>
+      <button class="an-tw-btn" onclick="setAnalyticsWindow('3m')">3 meses</button>
+      <button class="an-tw-btn" onclick="setAnalyticsWindow('1m')">Este mes</button>
+      <button class="an-tw-btn" onclick="setAnalyticsWindow('2w')">2 semanas</button>
+      <button class="an-tw-btn" onclick="setAnalyticsWindow('1w')">Esta semana</button>
+      <button class="an-tw-btn" onclick="setAnalyticsWindow('today')">Hoy</button>
+    </div>
+    <div class="an-tw-sep"></div>
+    <div class="an-tw-custom">
+      <input type="date" id="an-date-from" class="an-tw-date" onchange="setAnalyticsWindow('custom')">
+      <span style="color:var(--dim);font-size:11px">→</span>
+      <input type="date" id="an-date-to" class="an-tw-date" onchange="setAnalyticsWindow('custom')">
+    </div>
+    <div class="an-tw-info" id="an-tw-info"></div>
+  </div>
+
+  <div class="analytics-top" id="kpi-row"></div>
+  <div class="analytics-content">
+  <div class="analytics-row cols-4">
+    <div class="a-card" style="grid-column:span 4">
+      <div class="a-card-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span id="equity-chart-title">Curva de Equity — R's Acumuladas</span>
+        <div style="display:flex;gap:4px">
+          <button class="an-tw-btn active" id="equity-btn-r"  onclick="setEquityMode('r')" style="font-size:10px;padding:3px 10px">R's</button>
+          <button class="an-tw-btn"        id="equity-btn-dollar" onclick="setEquityMode('dollar')" style="font-size:10px;padding:3px 10px">$</button>
+          <button class="an-tw-btn"        id="equity-btn-gross"  onclick="setEquityMode('gross')"  style="font-size:10px;padding:3px 10px">Gross</button>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="equity-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row: Patrón | Precio | Hold Time | Días semana -->
+  <div class="analytics-row cols-4">
+    <div class="a-card">
+      <div class="a-card-title">Win Rate por Patrón</div>
+      <div class="bar-rows" id="chart-patron"></div>
+    </div>
+    <div class="a-card">
+      <div class="a-card-title">Win Rate por Precio ($)</div>
+      <div class="bar-rows" id="chart-precio"></div>
+    </div>
+    <div class="a-card">
+      <div class="a-card-title">Win Rate por Hold Time</div>
+      <div class="bar-rows" id="chart-hold"></div>
+    </div>
+    <div class="a-card">
+      <div class="a-card-title">Días de la Semana</div>
+      <div class="bar-rows" id="chart-dia"></div>
+    </div>
+  </div>
+
+  <!-- Hora entrada + salida: full width each -->
+  <div class="analytics-row cols-4">
+    <div class="a-card" style="grid-column:span 2">
+      <div class="a-card-title">Win Rate por Hora de Entrada</div>
+      <div class="hour-grid" id="chart-hora"></div>
+    </div>
+    <div class="a-card" style="grid-column:span 2">
+      <div class="a-card-title">Win Rate por Hora de Salida</div>
+      <div class="hour-grid" id="chart-hora-salida"></div>
+    </div>
+  </div>
+
+  <!-- Row: Gap% | Float | PM Vol | Premarket vs Market -->
+  <div class="analytics-row cols-4">
+    <div class="a-card">
+      <div class="a-card-title">Win Rate por Gap% <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(Massive)</span></div>
+      <div class="bar-rows" id="chart-gap"></div>
+    </div>
+    <div class="a-card">
+      <div class="a-card-title">Win Rate por Float <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(Massive)</span></div>
+      <div class="bar-rows" id="chart-float"></div>
+    </div>
+    <div class="a-card">
+      <div class="a-card-title">Win Rate por PM Vol <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(Massive)</span></div>
+      <div class="bar-rows" id="chart-pmvol"></div>
+    </div>
+    <div class="a-card">
+      <div class="a-card-title">Premarket vs Market</div>
+      <div class="bar-rows" id="chart-session"></div>
+    </div>
+  </div>
+
+  <!-- Row: Shorts Sector (span 2) | Longs Sector (span 2) -->
+  <div class="analytics-row cols-4">
+    <div class="a-card" style="grid-column:span 2">
+      <div class="a-card-title">Shorts — Win Rate por Sector <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(Massive)</span></div>
+      <div class="bar-rows" id="chart-short-sector"></div>
+    </div>
+    <div class="a-card" style="grid-column:span 2">
+      <div class="a-card-title">Longs — Win Rate por Sector <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(Massive)</span></div>
+      <div class="bar-rows" id="chart-long-sector"></div>
+    </div>
+  </div>
+
+  <!-- Row: Shorts vs Longs | Top Tickers | P&L Día Mes | Hold by Patron -->
+  <div class="analytics-row cols-4">
+    <div class="a-card">
+      <div class="a-card-title">Shorts vs Longs</div>
+      <div class="bar-rows" id="chart-long-short"></div>
+    </div>
+    <div class="a-card">
+      <div class="a-card-title">Top Tickers <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">por net P&L</span></div>
+      <div class="bar-rows" id="chart-tickers"></div>
+    </div>
+    <div class="a-card">
+      <div class="a-card-title">P&L por Día del Mes</div>
+      <div class="bar-rows" id="chart-dom"></div>
+    </div>
+    <div class="a-card">
+      <div class="a-card-title">Hold Time por Patrón</div>
+      <div class="bar-rows" id="chart-hold-patron"></div>
+    </div>
+  </div>
+
+  <!-- Heatmap: full width -->
+  <div class="analytics-row cols-4">
+    <div class="a-card" style="grid-column:span 4">
+      <div class="a-card-title">🔥 Heatmap — Win Rate por Hora × Día de la Semana</div>
+      <div id="chart-heatmap" style="overflow-x:auto"></div>
+    </div>
+  </div>
+
+  <!-- Row: Long×Inst | Short×Inst | Long×Insider | Short×Insider -->
+  <div class="analytics-row cols-4">
+    <div class="a-card">
+      <div class="a-card-title">🟢 Long — Win Rate por Inst.% <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(Finviz)</span></div>
+      <div id="chart-long-instit"></div>
+    </div>
+    <div class="a-card">
+      <div class="a-card-title">🔴 Short — Win Rate por Inst.% <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(Finviz)</span></div>
+      <div id="chart-short-instit"></div>
+    </div>
+    <div class="a-card">
+      <div class="a-card-title">🟢 Long — Win Rate por Insider% <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(Finviz)</span></div>
+      <div id="chart-long-insiders"></div>
+    </div>
+    <div class="a-card">
+      <div class="a-card-title">🔴 Short — Win Rate por Insider% <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(Finviz)</span></div>
+      <div id="chart-short-insiders"></div>
+    </div>
+  </div>
+
+  <!-- Scatter: span 2 each -->
+  <div class="analytics-row cols-4">
+    <div class="a-card" style="grid-column:span 2">
+      <div class="a-card-title">Gap% vs Resultado <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(Massive)</span></div>
+      <div class="chart-wrap" style="height:240px"><canvas id="chart-gap-scatter"></canvas></div>
+    </div>
+    <div class="a-card" style="grid-column:span 2">
+      <div class="a-card-title">P&L por Tamaño de Posición</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="chart-size-scatter"></canvas></div>
+    </div>
+  </div>
+
+  <!-- MFE / MAE Analysis: full width -->
+  <div class="analytics-row cols-4">
+    <div class="a-card" style="grid-column:span 4">
+      <div class="a-card-title">📈 MFE / MAE — Análisis de Excursión <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(Massive)</span></div>
+      <div id="chart-mfe-mae"></div>
+    </div>
+  </div>
+
+  <!-- Resumen mensual: full width -->
+  <div class="analytics-row cols-4">
+    <div class="a-card" style="grid-column:span 4">
+      <div class="a-card-title">Resumen Mensual</div>
+      <table class="monthly-table" id="monthly-table">
+        <thead><tr>
+          <th>MES</th><th>TRADES</th><th>WINS</th><th>WIN RATE</th>
+          <th>GROSS</th><th>COMMS</th><th>NET</th><th>AVG R</th>
+        </tr></thead>
+        <tbody id="monthly-body"></tbody>
+      </table>
+    </div>
+  </div>
+  </div><!-- /analytics-content -->
+
+</div>
+</div>
+
+
+<!-- ══ PAGE: CALENDARIO ══ -->
+<div class="page" id="page-calendario">
+<div class="cal-layout">
+
+  <div class="cal-header">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+      <div class="cal-month-label" id="cal-month-label">—</div>
+      <button class="cal-nav-btn" onclick="calNext()">›</button>
+      <div class="cal-month-net" id="cal-month-net"></div>
+    </div>
+    <div class="cal-mode">
+      <button class="cal-mode-btn active" id="mode-dollar" onclick="setCalMode('dollar')">$ NET</button>
+      <button class="cal-mode-btn" id="mode-rs" onclick="setCalMode('rs')">R's</button>
+    </div>
+  </div>
+
+  <div class="cal-month-strip" id="cal-strip"></div>
+  <div class="cal-grid-wrap">
+    <div class="cal-weekdays">
+      <div class="cal-wd">Lun</div><div class="cal-wd">Mar</div><div class="cal-wd">Mié</div>
+      <div class="cal-wd">Jue</div><div class="cal-wd">Vie</div>
+      <div class="cal-wd" style="color:var(--amber);opacity:.7">Semana</div>
+    </div>
+    <div class="cal-days" id="cal-days"></div>
+  </div>
+
+  <div class="cal-chart-card">
+    <div class="cal-chart-title">Evolución del mes — acumulado</div>
+    <div class="cal-chart-wrap"><canvas id="cal-chart"></canvas></div>
+  </div>
+
+  <!-- Intraday P&L DAS preview -->
+  <div id="das-intraday-panel" style="display:none" class="cal-chart-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="cal-chart-title" style="margin-bottom:0">
+        P&amp;L Intraday — sesión DAS
+        <span id="das-intraday-date" style="font-size:11px;color:var(--dim);font-family:var(--mono);font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px"></span>
+      </div>
+      <div style="display:flex;gap:20px;align-items:center" id="das-intraday-kpis"></div>
+    </div>
+    <div style="position:relative;height:160px"><canvas id="das-intraday-chart"></canvas></div>
+
+  </div>
+
+</div>
+</div>
+
+<!-- ══ PAGE: SETTINGS ══ -->
+<div class="page" id="page-notas">
+  <div class="notas-layout">
+
+    <!-- LEFT: Sidebar (shared) -->
+    <div class="notas-sidebar" id="notas-sidebar">
+      <div class="notas-sidebar-header">
+        <span class="notas-sidebar-title" id="notas-sidebar-title">Notas</span>
+        <button class="notas-new-btn" id="notas-new-btn" onclick="notaNew()" title="Nueva nota">+</button>
+      </div>
+      <div class="notas-search" id="notas-search-wrap">
+        <input type="text" id="notas-search-input" placeholder="Buscar notas…" oninput="notasSearch(this.value)">
+      </div>
+      <div class="notas-list" id="notas-list"></div>
+    </div>
+
+    <!-- RIGHT: Tabbed main area -->
+    <div class="notas-main">
+
+      <!-- Tab bar -->
+      <div class="notas-view-tabs">
+        <div class="notas-vtab active" id="vtab-calendar" onclick="setNotasView('calendar')">📅 Calendario</div>
+        <div class="notas-vtab" id="vtab-reflexiones" onclick="setNotasView('reflexiones')">✦ Reflexiones</div>
+      </div>
+
+      <!-- Calendar view -->
+      <div id="notas-view-calendar" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0">
+        <div class="notas-bigcal" id="notas-bigcal"></div>
+        <div class="notas-editor-panel" id="notas-editor-panel" style="display:none">
+          <div class="notas-toolbar" id="notas-toolbar">
+            <button class="ntb-btn ntb-back" onclick="closeNotaEditor()" title="Volver al calendario">
+              ‹ Calendario
+            </button>
+            <div class="ntb-sep"></div>
+            <button class="ntb-btn" onclick="notaInsertBlock('text')">¶</button>
+            <div class="ntb-sep"></div>
+            <button class="ntb-btn" onclick="notaInsertBlock('h1')">H1</button>
+            <button class="ntb-btn" onclick="notaInsertBlock('h2')">H2</button>
+            <button class="ntb-btn" onclick="notaInsertBlock('h3')">H3</button>
+            <div class="ntb-sep"></div>
+            <button class="ntb-btn" onclick="notaInsertBlock('bullet')">• Lista</button>
+            <button class="ntb-btn" onclick="notaInsertBlock('quote')">" Cita</button>
+            <button class="ntb-btn" onclick="notaInsertBlock('code')">⌨ Código</button>
+            <button class="ntb-btn" onclick="notaInsertBlock('divider')">— Sep.</button>
+            <div class="ntb-sep"></div>
+            <button class="ntb-btn" onclick="notaInsertTradeMention()" style="color:var(--amber);font-weight:700">@ Trade</button>
+            <div class="ntb-sep"></div>
+            <button class="ntb-btn" onclick="insertPlantilla('semana')" style="color:#5ab4e8;font-weight:700" title="Insertar preguntas entre semana">📋 Entre semana</button>
+            <button class="ntb-btn" onclick="insertPlantilla('finde')"  style="color:#5ab4e8;font-weight:700" title="Insertar preguntas fin de semana">📋 Fin de semana</button>
+            <div style="margin-left:auto;display:flex;gap:4px">
+              <button class="ntb-btn" onclick="notaDelete()" style="color:var(--red)">🗑</button>
+            </div>
+          </div>
+          <div class="notas-tags-bar" id="notas-tags-bar"></div>
+          <div class="notas-editor-wrap">
+            <div class="notas-editor" id="notas-editor"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reflexiones view -->
+      <div id="notas-view-reflexiones" style="flex:1;display:none;flex-direction:row;overflow:hidden;min-height:0">
+        <!-- Sidebar: list of reflexiones -->
+        <div class="refl-sidebar">
+          <div class="refl-sidebar-top">
+            <span class="refl-sidebar-label">Entradas</span>
+            <button class="refl-new-btn" onclick="newReflexion()">+ Nueva</button>
+          </div>
+          <div class="refl-list" id="refl-list"></div>
+        </div>
+        <!-- Main editor -->
+        <div class="refl-main" id="refl-main">
+          <div class="refl-empty" id="refl-empty">
+            <div style="font-size:32px;margin-bottom:12px">✦</div>
+            <div style="font-size:13px;color:var(--dim)">Selecciona una entrada o crea una nueva</div>
+          </div>
+          <div class="refl-editor-wrap" id="refl-editor-wrap" style="display:none;flex-direction:column;height:100%">
+            <div class="refl-editor-header">
+              <input class="refl-title-input" id="refl-title-input" type="text" placeholder="Título de la reflexión…"
+                oninput="onReflTitleChange(this.value)" onblur="saveReflexiones()">
+              <span class="refl-editor-date" id="refl-editor-date"></span>
+              <button class="refl-delete-btn" onclick="deleteReflexion()" title="Eliminar entrada">🗑</button>
+            </div>
+            <div class="refl-blocks-wrap" id="refl-blocks-wrap"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<div class="page" id="page-settings">
+<div class="settings-layout">
+
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="sh-icon">◈</span>
+      <div><div class="sh-title">Estado de datos</div><div class="sh-sub">Resumen de lo que hay guardado</div></div>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <div><div class="sr-label">Total de trades guardados</div></div>
+        <div class="sr-val" id="cfg-total">—</div>
+      </div>
+      <div class="settings-row">
+        <div><div class="sr-label">Rango de fechas</div></div>
+        <div class="sr-val" id="cfg-range">—</div>
+      </div>
+      <div class="settings-row">
+        <div><div class="sr-label">Último import</div></div>
+        <div class="sr-val" id="cfg-last">—</div>
+      </div>
+      <div class="settings-row" style="background:rgba(232,160,32,.04);margin:8px -18px -18px;padding:10px 18px;border-top:1px solid rgba(232,160,32,.15)">
+        <div><div class="sr-label" style="color:var(--amber)">⚠ Nombre del archivo</div><div class="sr-sub">Guarda siempre este archivo con el mismo nombre. Los datos se guardan en IndexedDB del navegador (sin límite práctico de tamaño). Usa el backup JSON para migrar datos entre versiones o navegadores.</div></div>
+      </div>
+      <div class="settings-row">
+        <div><div class="sr-label">Espacio usado (IndexedDB)</div></div>
+        <div class="sr-val" id="cfg-size">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="sh-icon">⇣</span>
+      <div><div class="sh-title">Exportar / Importar datos</div><div class="sh-sub">Transfiere tus datos entre versiones o haz backup</div></div>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <div><div class="sr-label">Exportar backup JSON</div><div class="sr-sub">Guarda todos los trades y datos manuales en un archivo JSON</div></div>
+        <button class="btn btn-ghost" style="width:auto;margin:0" onclick="exportJSON()">BACKUP JSON</button>
+      </div>
+      <div class="settings-row">
+        <div><div class="sr-label">Importar backup JSON</div><div class="sr-sub">Restaura trades desde un backup anterior</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="file" id="json-import-input" accept=".json" style="display:none" onchange="importJSON(this)">
+          <button class="btn btn-ghost" style="width:auto;margin:0" onclick="document.getElementById('json-import-input').click()">CARGAR JSON</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div><div class="sr-label">Exportar todos los trades a CSV</div><div class="sr-sub">Incluye todos los campos manuales y calculados</div></div>
+        <button class="btn btn-ghost" style="width:auto;margin:0" onclick="exportCSV()">EXPORTAR CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="sh-icon">⚙</span>
+      <div><div class="sh-title">Patrones</div><div class="sh-sub">Lista de setups disponibles en el desplegable</div></div>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <div><div class="sr-label">Patrones activos</div><div class="sr-sub" id="cfg-patterns">—</div></div>
+      </div>
+      <div style="margin-top:8px">
+        <div class="filter-label" style="margin-bottom:6px">Editar lista (uno por línea)</div>
+        <textarea id="patterns-textarea" style="width:100%;height:140px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:11px;padding:8px;outline:none;resize:vertical;" spellcheck="false"></textarea>
+        <button class="btn btn-amber" style="margin-top:6px;width:auto;padding:5px 16px" onclick="savePatterns()">GUARDAR PATRONES</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MASSIVE API ══ -->
+  <div class="settings-section" style="overflow:visible">
+    <div class="settings-section-header">
+      <span class="sh-icon">◉</span>
+      <div><div class="sh-title">Massive API — Enriquecer trades</div><div class="sh-sub">Importa datos de mercado automáticamente: float, gap, premarket, volumen por hora...</div></div>
+    </div>
+    <div class="settings-body">
+
+      <div class="settings-row">
+        <div><div class="sr-label">API Key</div><div class="sr-sub">Tu key de massive.com (o polygon.io, son compatibles)</div></div>
+        <input type="password" id="massive-key-input" placeholder="xxxxxxxxxxxxxxxx" autocomplete="off"
+          style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:11px;padding:5px 10px;outline:none;border-radius:3px;width:220px"
+          oninput="saveMassiveKey(this.value)">
+      </div>
+
+      <div class="settings-row" style="align-items:flex-start;flex-direction:column;gap:10px">
+        <div><div class="sr-label">Enriquecer trades recientes</div><div class="sr-sub">Selecciona cuántos de los últimos trades quieres enriquecer con datos de Massive</div></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="massive-count" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:12px;padding:5px 8px;outline:none;border-radius:3px">
+            <option value="5">Últimos 5</option>
+            <option value="10" selected>Últimos 10</option>
+            <option value="20">Últimos 20</option>
+            <option value="50">Últimos 50</option>
+            <option value="all">Todos</option>
+            <option value="pending">Solo pendientes (sin MFE)</option>
+          </select>
+          <button class="btn btn-amber" style="width:auto;padding:5px 18px;margin:0" onclick="enrichWithMassive()">ENRIQUECER</button>
+          <span id="massive-status" style="font-family:var(--sans);font-size:11px;color:var(--dim)"></span>
+        </div>
+        <!-- Progress bar -->
+        <div id="massive-progress-wrap" style="display:none;width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;height:6px;overflow:hidden">
+          <div id="massive-progress-bar" style="height:100%;background:var(--amber);width:0%;transition:width .3s"></div>
+        </div>
+        <!-- Log -->
+        <div id="massive-log" style="display:none;width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;padding:8px 10px;font-family:var(--mono);font-size:10px;color:var(--dim);max-height:320px;overflow-y:auto;line-height:1.6;word-break:break-all;box-sizing:border-box;"></div>
+      </div>
+
+      <div class="settings-row" style="background:rgba(232,160,32,.04);margin:8px -18px -18px;padding:10px 18px;border-top:1px solid rgba(232,160,32,.15)">
+        <div><div class="sr-label" style="color:var(--amber)">Campos que se añaden a cada trade</div>
+        <div class="sr-sub">Gap%, PM High, PM Vol (por hora 4h-9:30h ET), Day OHLCV, Float, Shares, Market Cap, Sector, Rel. Volume</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="settings-section danger-zone">
+    <div class="settings-section-header">
+      <span class="sh-icon">⚠</span>
+      <div><div class="sh-title">Zona de peligro</div><div class="sh-sub">Acciones irreversibles — con cuidado</div></div>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <div>
+          <div class="sr-label" style="color:var(--red)">Borrar todos los trades</div>
+          <div class="sr-sub">Elimina todos los datos de la app. No se puede deshacer.</div>
+        </div>
+        <button class="btn-show-danger" onclick="showDangerConfirm()">BORRAR TODO</button>
+      </div>
+      <div class="danger-confirm" id="danger-confirm">
+        <p>Para confirmar, escribe <strong style="color:var(--red)">BORRAR</strong> en el campo de abajo. Todos los trades y datos manuales se eliminarán permanentemente.</p>
+        <input class="danger-confirm-input" type="text" id="danger-input" placeholder="Escribe BORRAR para confirmar" oninput="checkDangerInput()">
+        <button class="btn-danger-real" id="danger-btn" disabled onclick="clearAll()">CONFIRMAR BORRADO</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- Daily Journal Modal -->
+<div class="journal-overlay" id="journal-overlay" onclick="if(event.target===this)closeJournal()">
+  <div class="journal-modal">
+    <div class="journal-header">
+      <div>
+        <div class="journal-date-label" id="jnl-date"></div>
+        <div style="font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:3px" id="jnl-summary"></div>
+      </div>
+      <button class="journal-close" onclick="closeJournal()">✕</button>
+    </div>
+    <div class="journal-body">
+      <div>
+        <div class="journal-section-title">Trades del día</div>
+        <div id="jnl-trades"></div>
+      </div>
+      <div>
+        <div class="journal-section-title">Estado mental</div>
+        <div class="journal-mood">
+          <button class="journal-mood-btn" data-mood="🔥" onclick="selectMood('🔥')" title="En racha">🔥</button>
+          <button class="journal-mood-btn" data-mood="💪" onclick="selectMood('💪')" title="Concentrado">💪</button>
+          <button class="journal-mood-btn" data-mood="😐" onclick="selectMood('😐')" title="Normal">😐</button>
+          <button class="journal-mood-btn" data-mood="😤" onclick="selectMood('😤')" title="Frustrado">😤</button>
+          <button class="journal-mood-btn" data-mood="😰" onclick="selectMood('😰')" title="Con miedo">😰</button>
+          <button class="journal-mood-btn" data-mood="🤯" onclick="selectMood('🤯')" title="Overtrading">🤯</button>
+        </div>
+      </div>
+      <div>
+        <div class="journal-section-title">Notas del día</div>
+        <textarea class="journal-textarea" id="jnl-notes" placeholder="¿Qué pasó hoy? ¿Seguiste el plan? ¿Qué mejorar?..."></textarea>
+      </div>
+      <div>
+        <div class="journal-section-title">Errores / lecciones</div>
+        <textarea class="journal-textarea" id="jnl-lessons" placeholder="Errores cometidos, reglas rotas, lecciones aprendidas..." style="min-height:90px"></textarea>
+      </div>
+      <!-- Plantilla de preguntas -->
+      <div>
+        <div class="journal-section-title" id="jnl-template-title">Reflexión del día</div>
+        <div class="jnl-template" id="jnl-template-fields"></div>
+      </div>
+      <button class="journal-save-btn" onclick="saveJournalEntry()">Guardar notas</button>
+    </div>
+  </div>
+</div>
+
+<!-- Trade Chart Modal -->
+<div class="chart-modal-overlay" id="chart-modal-overlay" onclick="if(event.target===this)closeChartModal()">
+  <div class="chart-modal">
+    <div class="chart-modal-header">
+      <span class="chart-modal-ticker" id="cm-ticker">—</span>
+      <span class="chart-modal-date" id="cm-date">—</span>
+      <div class="chart-modal-trades" id="cm-trades"></div>
+      <div class="chart-modal-controls">
+        <button class="chart-tf-btn active" onclick="setChartTF(1)" id="tf-1">1m</button>
+        <button class="chart-tf-btn" onclick="setChartTF(2)" id="tf-2">2m</button>
+        <button class="chart-tf-btn" onclick="setChartTF(5)" id="tf-5">5m</button>
+        <button class="chart-tf-btn" onclick="setChartTF(15)" id="tf-15">15m</button>
+        <button class="chart-modal-close" onclick="closeChartModal()">✕</button>
+      </div>
+    </div>
+    <div class="chart-modal-body" id="cm-body">
+      <div class="chart-modal-loading" id="cm-loading">Cargando velas...</div>
+    </div>
+    <div class="chart-modal-summary" id="cm-summary"></div>
+  </div>
+</div>
+
+</div><!-- /shell -->
+
+<!-- Trade Inspector -->
+<div class="inspector-overlay" id="inspector-overlay" onclick="if(event.target===this)closeInspector()">
+  <div class="inspector-panel" id="inspector-panel">
+    <button class="inspector-close" onclick="closeInspector()">✕</button>
+    <div class="inspector-title" id="insp-title">—</div>
+    <div class="inspector-sub" id="insp-sub">—</div>
+    <div id="insp-body"></div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+</body>
+<script src="/app.js" defer></script>
+</html>
