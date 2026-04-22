@@ -45,8 +45,12 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-initDB()
-  .then(() => app.listen(PORT, () => console.log(`BTT Journal en http://localhost:${PORT}`)))
-  .catch(err => { console.error('DB init failed:', err); process.exit(1); });
+if (process.env.NODE_ENV !== 'production') {
+  initDB()
+    .then(() => app.listen(PORT, () => console.log(`BTT Journal en http://localhost:${PORT}`)))
+    .catch(err => console.error('DB init failed:', err));
+} else {
+  initDB().catch(err => console.error('DB init failed:', err));
+}
 
 module.exports = app;
