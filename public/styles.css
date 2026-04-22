@@ -582,54 +582,67 @@ tr:hover .sector-edit-btn{opacity:1;}
 /* ── Editor.js theme ── */
 #editorjs-holder { padding: 4px 0 60px; }
 .codex-editor { font-family: var(--sans); color: var(--text); }
-.codex-editor__redactor { padding-bottom: 60px !important; }
+/* Give left space so the floating toolbar doesn't overlap text */
+.codex-editor__redactor { padding-left: 50px !important; padding-bottom: 60px !important; }
+/* Full width blocks, but constrained within the editor padding */
 .ce-block__content { max-width: 100% !important; margin: 0 !important; }
-.ce-paragraph { font-size: 14px; line-height: 1.75; color: var(--text); padding: 3px 0; }
-.ce-paragraph[data-placeholder]:empty::before { color: var(--muted); opacity: .6; }
-/* Toolbar + button */
-.ce-toolbar__plus { color: var(--dim); background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; }
-.ce-toolbar__plus:hover { color: var(--amber); border-color: var(--amber); background: rgba(var(--accent-rgb),.06); }
-.ce-toolbar__settings-btn { color: var(--dim); }
+/* Paragraph */
+.ce-paragraph { font-size: 14px; line-height: 1.75; color: var(--text); padding: 2px 0; }
+.ce-paragraph[data-placeholder]:empty::before { color: var(--muted); opacity: .55; font-style: normal; }
+/* Floating toolbar (+ and ⋮) — keep it small and left-aligned */
+.ce-toolbar { left: 0 !important; }
+.ce-toolbar__content { max-width: 100% !important; margin: 0 !important; }
+.ce-toolbar__plus { color: var(--dim); background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; width: 24px; height: 24px; }
+.ce-toolbar__plus:hover { color: var(--amber); border-color: var(--amber); }
+.ce-toolbar__settings-btn { color: var(--dim); width: 24px; height: 24px; }
 .ce-toolbar__settings-btn:hover { color: var(--text); }
 /* Toolbox popup */
 .ce-popover { background: var(--bg2); border: 1px solid var(--border2); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
-.ce-popover__search { background: var(--bg3); border-bottom: 1px solid var(--border); }
-.ce-popover__search .cdx-search-field { background: transparent; }
+.ce-popover__search .cdx-search-field { background: var(--bg3); border-bottom: 1px solid var(--border); }
 .ce-popover__search .cdx-search-field__input { color: var(--text); background: transparent; }
 .ce-popover-item { color: var(--text); border-radius: 4px; }
 .ce-popover-item:hover, .ce-popover-item--focused { background: var(--bg3) !important; }
 .ce-popover-item__icon { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; color: var(--dim); }
-/* Inline toolbar */
+/* Inline toolbar (appears on text selection) */
 .ce-inline-toolbar { background: var(--bg2); border: 1px solid var(--border2); border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.12); }
 .ce-inline-tool { color: var(--dim); }
 .ce-inline-tool:hover, .ce-inline-tool--active { color: var(--amber); background: rgba(var(--accent-rgb),.08); }
 .ce-inline-toolbar__dropdown { border-right: 1px solid var(--border); }
-/* Block tunes */
+/* Block tunes panel */
 .ce-settings { background: var(--bg2); border: 1px solid var(--border2); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
 .cdx-settings-button { color: var(--dim); border-radius: 4px; }
 .cdx-settings-button:hover { background: var(--bg3); color: var(--text); }
 .cdx-settings-button--active { color: var(--amber); }
-/* Blocks */
+/* Headers */
 .ce-header { color: var(--text); font-family: var(--sans); }
-.ce-header[data-placeholder]:empty::before { color: var(--muted); opacity: .5; }
-.cdx-quote { border-left: 3px solid var(--amber); padding-left: 14px; }
-.cdx-quote__text { color: var(--dim); font-style: italic; font-size: 14px; line-height: 1.75; }
-.cdx-quote__caption { color: var(--muted); font-size: 12px; }
+.ce-header[data-placeholder]:empty::before { color: var(--muted); opacity: .4; }
+/* Quote */
+.cdx-quote { border-left: 3px solid var(--amber); padding-left: 14px; background: transparent; }
+.cdx-quote__text { color: var(--dim); font-style: italic; font-size: 14px; line-height: 1.75; background: transparent; border: none; }
+.cdx-quote__caption { color: var(--muted); font-size: 12px; background: transparent; border: none; }
+/* Code */
 .ce-code { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; }
 .ce-code__textarea { background: transparent; color: #a8d8a0; font-family: var(--mono); font-size: 12px; line-height: 1.6; }
-.tc-wrap { --color-border: var(--border2); }
-.tc-cell { border-color: var(--border2); color: var(--text); }
-.tc-cell--selected { background: rgba(var(--accent-rgb),.08) !important; }
-.tc-add-column, .tc-add-row { color: var(--dim); }
-.tc-add-column:hover, .tc-add-row:hover { color: var(--amber); background: rgba(var(--accent-rgb),.06); }
+/* Table */
+.tc-wrap { --color-border: var(--border2); border-radius: 4px; overflow: hidden; }
+.tc-table { border-collapse: collapse; width: 100%; }
+.tc-cell { border: 1px solid var(--border2); color: var(--text); padding: 6px 10px; font-size: 13px; }
+.tc-cell--selected { background: rgba(var(--accent-rgb),.07) !important; }
+.tc-row:first-child .tc-cell { background: var(--bg3); font-weight: 600; }
+.tc-add-column, .tc-add-row { color: var(--dim); opacity: .6; }
+.tc-add-column:hover, .tc-add-row:hover { color: var(--amber); opacity: 1; }
+.tc-toolbox { background: var(--bg2); border: 1px solid var(--border2); border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+.tc-toolbox__toggler { color: var(--dim); }
 /* Image */
+.image-tool { max-width: 100%; }
 .image-tool__image { border-radius: 6px; overflow: hidden; }
-.image-tool__caption { color: var(--muted); font-size: 12px; text-align: center; }
+.image-tool__caption { color: var(--muted); font-size: 12px; text-align: center; background: transparent; border: none; }
 /* Delimiter */
-.ce-delimiter::before { color: var(--muted); }
-/* Dark mode overrides */
+.ce-delimiter::before { color: var(--border2); }
+/* Dark mode */
 html.dark .ce-popover { box-shadow: 0 8px 32px rgba(0,0,0,.5); }
 html.dark .ce-inline-toolbar { box-shadow: 0 4px 20px rgba(0,0,0,.5); }
+html.dark .ce-settings { box-shadow: 0 8px 32px rgba(0,0,0,.5); }
 
 /* ── Daily Journal Modal ── */
 .journal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;}
